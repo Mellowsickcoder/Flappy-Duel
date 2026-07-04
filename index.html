@@ -89,6 +89,8 @@
     const pipeGap = 100;
     const pipeSpawnRate = 100;
     let frameCount = 0;
+    let spawnAccumulator = 0;
+    let lastTime = 0;
     let pipes = [];
     let gameStarted = false;
     let gameOver = false;
@@ -131,11 +133,11 @@
                 this.velocity = jump;
             }
         }
-        update() {
+        update(frameScale = 1) {
             if (!this.alive) return;
             if (gameStarted) {
-                this.velocity += gravity;
-                this.y += this.velocity;
+                this.velocity += gravity * frameScale;
+                this.y += this.velocity * frameScale;
             }
             if (this.y - this.radius < 0) {
                 this.y = this.radius;
@@ -223,17 +225,19 @@ function checkGameOver() {
         return inX && (hitTop || hitBottom);
     }
 
-    function update() {
+    function update(frameScale = 1) {
         if (gameOver) return;
-        p1.update();
-        p2.update();
+        p1.update(frameScale);
+        p2.update(frameScale);
         if (!gameStarted) return;
         frameCount++;
-        if (frameCount % pipeSpawnRate === 0) {
+        spawnAccumulator += frameScale;
+        while (spawnAccumulator >= pipeSpawnRate) {
             spawnPipe();
+            spawnAccumulator -= pipeSpawnRate;
         }
         for (let i = pipes.length - 1; i >= 0; i--) {
-            pipes[i].x -= currentPipeSpeed;
+            pipes[i].x -= currentPipeSpeed * frameScale;
             if (checkCollision(p1, pipes[i])) {
                 p1.alive = false;
                 checkGameOver();
@@ -307,8 +311,12 @@ function checkGameOver() {
         }
     }
 
-    function gameLoop() {
-        update();
+    function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+        const frameScale = Math.min(Math.max(deltaTime / (1 / 60), 0.5), 2);
+        update(frameScale);
         draw();
         requestAnimationFrame(gameLoop);
     }
