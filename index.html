@@ -68,6 +68,16 @@
     </div>
 
 <script>
+    const bird1Image = new Image();
+    bird1Image.src = 'bird1.png';
+    const bird2Image = new Image();
+    bird2Image.src = 'bird2.png';
+    const backgroundImage = new Image();
+    backgroundImage.src = 'flappy_bird_background.jpg';
+    const lowerPipeImage = new Image();
+    lowerPipeImage.src = 'lower pipe.png';
+    const upperPipeImage = new Image();
+    upperPipeImage.src = 'upper pipe.png';
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const restartBtn = document.getElementById("restartBtn");
@@ -76,7 +86,7 @@
     const jump = -5.5;
     let basePipeSpeed = 2.5;
     let currentPipeSpeed = basePipeSpeed;
-    const pipeGap = 120;
+    const pipeGap = 100;
     const pipeSpawnRate = 100;
     let frameCount = 0;
     let pipes = [];
@@ -85,11 +95,24 @@
     let winnerText = "";
     let highestPassedCount = 0;
 
+    function drawPipeImage(pipe, y, height, isTopPipe) {
+        const image = isTopPipe ? upperPipeImage : lowerPipeImage;
+        if (image.complete) {
+            ctx.drawImage(image, pipe.x, y, pipe.width, height);
+        } else {
+            ctx.fillStyle = "#2e7d32";
+            ctx.fillRect(pipe.x, y, pipe.width, height);
+        }
+    }
+
     class Bird {
-        constructor(x, y, color) {
+        constructor(x, y, color, image = null) {
             this.startX = x;
             this.startY = y;
             this.color = color;
+            this.image = image;
+            this.width = 28;
+            this.height = 28;
             this.reset();
         }
         reset() {
@@ -125,6 +148,10 @@
         }
         draw() {
             if (!this.alive) return;
+            if (this.image && this.image.complete) {
+                ctx.drawImage(this.image, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+                return;
+            }
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
@@ -136,8 +163,8 @@
         }
     }
 
-    const p1 = new Bird(150, 180, "#ff0011");
-    const p2 = new Bird(150, 220, "#0077ff");
+    const p1 = new Bird(150, 180, "#ff0011", bird1Image);
+    const p2 = new Bird(150, 220, "#0077ff", bird2Image);
     window.addEventListener("keydown", (e) => {
         if (e.code === "Space") {
             e.preventDefault();
@@ -157,7 +184,7 @@
             x: canvas.width,
             top: topHeight,
             bottom: canvas.height - (topHeight + pipeGap),
-            width: 50,
+            width: 60,
             passed: false
         });
     }
@@ -166,9 +193,9 @@ function checkGameOver() {
         gameOver = true;
         restartBtn.style.display = "block";
         if (p1.score > p2.score) {
-            winnerText = "Red bird wins";
+            winnerText = "Yellow bird wins!";
         } else if (p2.score > p1.score) {
-            winnerText = "Blue bird wins";
+            winnerText = "Blue bird wins!";
         } else {
             winnerText = "Draw!";
         }
@@ -232,12 +259,15 @@ function checkGameOver() {
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#2e7d32";
+        if (backgroundImage.complete) {
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = "#70c5ce";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         pipes.forEach(pipe => {
-            ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-            ctx.strokeRect(pipe.x, 0, pipe.width, pipe.top);
-            ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
-            ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
+            drawPipeImage(pipe, 0, pipe.top, true);
+            drawPipeImage(pipe, canvas.height - pipe.bottom, pipe.bottom, false);
         });
         p1.draw();
         p2.draw();
@@ -245,7 +275,7 @@ function checkGameOver() {
         ctx.font = "bold 18px Arial";
         ctx.shadowBlur = 4;
         ctx.shadowColor = "black";
-        ctx.fillText(`Red: ${p1.score}`, 20, 30);
+        ctx.fillText(`Yellow: ${p1.score}`, 20, 30);
         ctx.fillText(`Blue: ${p2.score}`, canvas.width - 100, 30);
         let speedLevel = Math.floor((currentPipeSpeed - basePipeSpeed) / 0.4) + 1;
         ctx.fillText(`Speed: x${speedLevel}`, canvas.width / 2 - 40, 30);
